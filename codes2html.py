@@ -14,6 +14,7 @@ def _parse_args():
     parser = argparse.ArgumentParser(description='A tool to collect codes and highlight syntax in a single html document.')
     parser.add_argument('sources', metavar='source', nargs='+', type=str, help='source code directory or file')
     parser.add_argument('-e', '--extensions', help='file extensions to be considered as source files. separated with comma or a single "*" indicates all. e.g. "c,cpp,h,m,mm". default is "*"', default='*')
+    parser.add_argument('-l', '--lines', help='limit the lines of source codes. but the content of a file is always complete, so the final lines may exceed this value. 0 for unlimited. default is 3500', type=int, default='3500')
     parser.add_argument('-o', '--output',  help='output file path. default is output.html', default='output.html')
     parser.add_argument('-i', '--ignore', help='path of the ignore file, similar to .gitignore. default is ignore.txt', default='ignore.txt', dest='ignore_file')
     parser.add_argument('-f', '--footer', help='file footer string, you can use </br> to insert lines. default is </br>', default='</br>', dest='file_footer')
@@ -36,6 +37,9 @@ def _parse_args():
     args.ignore_patterns = _parse_ignore_file(args.ignore_file)
 
     args.extension_patterns = _parse_extensions(args.extensions)
+
+    if args.lines <= 0:
+        args.lines = 2 ** 31
 
     return args
 
@@ -73,6 +77,7 @@ def _match_any_pattern(name, patterns):
 class Codes2HtmlTool:
     def __init__(self, args):
         self.args = args
+        self.written_lines = 0
         with open(args.output, 'w') as write_fd:
             self.hf = HtmlFormatter()
             self.write_fd = write_fd
@@ -101,6 +106,8 @@ class Codes2HtmlTool:
         subfiles = os.listdir(path)
         subfiles.sort()
         for subfile in subfiles:
+            if self.written_lines >= self.args.lines:
+                break
             if subfile.startswith('.'):
                 continue
             full_path = os.path.join(path, subfile)
@@ -119,7 +126,9 @@ class Codes2HtmlTool:
         try:
             lexer = get_lexer_for_filename(full_path)
             with open(full_path) as fd:
-                content = fd.read()
+                lines = fd.readlines()
+                self.written_lines += len(lines)
+                content = ''.join(lines)
                 if full_path.endswith('.h'):
                     # ".h" file is possible to be objective-c.
                     # guess again with file content to determine the actual syntax
