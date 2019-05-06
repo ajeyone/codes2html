@@ -1,6 +1,4 @@
 Pods
-AppDelegate.*
-*.py
-*.sh
-*.framework
 Assets.xcassets
+*.framework
+AppDelegate.*

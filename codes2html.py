@@ -13,7 +13,8 @@ from pygments.formatters.html import DOC_FOOTER
 def _parse_args():
     parser = argparse.ArgumentParser(description='A tool to collect codes and highlight syntax in a single html document.')
     parser.add_argument('sources', metavar='source', nargs='+', type=str, help='source code directory or file')
-    parser.add_argument('-o', '--out',  help='output file path. default is output.html', default='output.html', dest='output')
+    parser.add_argument('-e', '--extensions', help='file extensions to be considered as source files. separated with comma or a single "*" indicates all. e.g. "c,cpp,h,m,mm". default is "*"', default='*')
+    parser.add_argument('-o', '--output',  help='output file path. default is output.html', default='output.html')
     parser.add_argument('-i', '--ignore', help='path of the ignore file, similar to .gitignore. default is ignore.txt', default='ignore.txt', dest='ignore_file')
     parser.add_argument('-f', '--footer', help='file footer string, you can use </br> to insert lines. default is </br>', default='</br>', dest='file_footer')
     args = parser.parse_args()
@@ -34,6 +35,8 @@ def _parse_args():
     args.ignore_file = os.path.expanduser(args.ignore_file)
     args.ignore_patterns = _parse_ignore_file(args.ignore_file)
 
+    args.extension_patterns = _parse_extensions(args.extensions)
+
     return args
 
 def _parse_ignore_file(path):
@@ -48,10 +51,24 @@ def _parse_ignore_file(path):
     except:
         return []
 
+def _parse_extensions(extensions_string):
+    if extensions_string.strip() == '*':
+        return []
+    array = extensions_string.split(',')
+    array = ['*.' + e.strip() for e in array if len(e.strip()) > 0]
+    array = list(set(array)) # remove duplicated values
+    return array
+
 def _short_class_name(obj):
     t = type(obj)
     m = re.match(r'<class \'(\w+\.)*(\w+)\'>', str(t))
     return m.group(2)
+
+def _match_any_pattern(name, patterns):
+    for pattern in patterns:
+        if fnmatch.fnmatch(name, pattern):
+            return True
+    return False
 
 class Codes2HtmlTool:
     def __init__(self, args):
@@ -65,11 +82,12 @@ class Codes2HtmlTool:
             write_fd.write(self._footer())
 
     def _should_ignore_file(self, name):
-        for pattern in self.args.ignore_patterns:
-            if fnmatch.fnmatch(name, pattern):
-                return True
-        return False
+        return _match_any_pattern(name, self.args.ignore_patterns)
     
+    def _accept_extension(self, name):
+        patterns = self.args.extension_patterns
+        return len(patterns) == 0 or _match_any_pattern(name, patterns)
+
     def _header(self):
         return DOC_HEADER % dict(
             title = self.hf.title, 
@@ -91,7 +109,7 @@ class Codes2HtmlTool:
                 continue
             if os.path.isdir(full_path):
                 self._collect_files(full_path)
-            else:
+            elif self._accept_extension(subfile):
                 self._highlight_and_write_file(full_path)
 
     def _highlight_and_write_file(self, full_path):
