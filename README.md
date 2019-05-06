@@ -18,17 +18,26 @@ In the script, "guess" feature is used to determine the source code syntax, both
 
 ## Usage
 ```
-usage: codes2html.py [-h] [-o OUTPUT] [-i IGNORE_FILE] [-f FILE_FOOTER]
+usage: codes2html.py [-h] [-e EXTENSIONS] [-l LINES] [-o OUTPUT]
+                     [-i IGNORE_FILE] [-f FILE_FOOTER]
                      source [source ...]
 
-A tool to collect codes and highlight syntax in a single HTML document.
+A tool to collect codes and highlight syntax in a single html document.
 
 positional arguments:
   source                source code directory or file
 
 optional arguments:
   -h, --help            show this help message and exit
-  -o OUTPUT, --out OUTPUT
+  -e EXTENSIONS, --extensions EXTENSIONS
+                        file extensions to be considered as source files.
+                        separated with comma or a single "*" indicates all.
+                        e.g. "c,cpp,h,m,mm". default is "*"
+  -l LINES, --lines LINES
+                        limit the lines of source codes. but the content of a
+                        file is always complete, so the final lines may exceed
+                        this value. 0 for unlimited. default is 3500
+  -o OUTPUT, --output OUTPUT
                         output file path. default is output.html
   -i IGNORE_FILE, --ignore IGNORE_FILE
                         path of the ignore file, similar to .gitignore.
